@@ -435,17 +435,12 @@
 
             console.log(`Fetching data for mobile: ${mobile}, from: ${startDate}, to: ${endDate}`);
           
-            const url = new URL("https://script.google.com/macros/s/AKfycbw5Mghwwt3ddL8mXsSEvX9uKbqhCRy-7aUwaRNHbHMj0i_1A9WnM4oA7uwjc7g0x7oj/exec");
-            url.searchParams.append("action", "getAttendanceDataByMobile");
-            url.searchParams.append("mobile", mobile);
-            url.searchParams.append("startISO", startDate);
-            url.searchParams.append("endISO", endDate);
+            const url = `/proxy?mobile=${mobile}&startISO=${startISO}&endISO=${endISO}`;
           
             return fetch(url)
-            .then(res => {
-              if (!res.ok) throw new Error("Network response was not ok");
-              return res.json();
-            });
+            .then(res => res.json())
+              .then(handleData)
+              .catch(console.error);
         }
 
         function handleFailure(err) {
