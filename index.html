@@ -435,7 +435,7 @@
 
             console.log(`Fetching data for mobile: ${mobile}, from: ${startDate}, to: ${endDate}`);
           
-            const url = `/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
+            const url = `https://almuraqib-attendance-lookup.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
           
             return fetch(url)
             .then(res => res.json())
