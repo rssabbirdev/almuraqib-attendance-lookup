@@ -10,3 +10,5 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.status(200).json(data);
 }
+
+// https://script.google.com/macros/s/AKfycbx_XTWnCkdoay0HA_Kr7GTQGVInCLsRR467Z6kvz2R9pCYZyX5x1Z_JJl2tP323joCD/exec?action=getAttendanceDataByMobile&mobile=0507463037&startISO=2025-08-01&endISO=2025-08-30
