@@ -438,8 +438,8 @@
             const url = new URL("https://script.google.com/macros/s/AKfycbw5Mghwwt3ddL8mXsSEvX9uKbqhCRy-7aUwaRNHbHMj0i_1A9WnM4oA7uwjc7g0x7oj/exec");
             url.searchParams.append("action", "getAttendanceDataByMobile");
             url.searchParams.append("mobile", mobile);
-            url.searchParams.append("startISO", startISO);
-            url.searchParams.append("endISO", endISO);
+            url.searchParams.append("startISO", startDate);
+            url.searchParams.append("endISO", endDate);
           
             return fetch(url)
             .then(res => {
