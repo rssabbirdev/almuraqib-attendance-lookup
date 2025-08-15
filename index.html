@@ -435,7 +435,7 @@
 
             console.log(`Fetching data for mobile: ${mobile}, from: ${startDate}, to: ${endDate}`);
           
-            const url = `/proxy?mobile=${mobile}&startISO=${startISO}&endISO=${endISO}`;
+            const url = `/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
           
             return fetch(url)
             .then(res => res.json())
