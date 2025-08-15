@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendance Lookup</title>
+    <!-- Tailwind CSS CDN for a modern, responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            transition: background-color 0.3s;
+        }
+        /* Fade-in animation for results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        /* Sticky header for the table on larger screens */
+        @media (min-width: 768px) {
+            #resultsTable thead {
+                position: sticky;
+                top: 0;
+                background-color: #f9fafb;
+                z-index: 10;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white p-6 md:p-10 rounded-xl shadow-xl w-full max-w-4xl">
+      <img src="https://almuraqib.ae/wp-content/uploads/2022/05/al-muraqib-simple-text-based-logo-retina-1.png" height="150" width="150" class="mb-5 "/>
+        <h2 id="app-title" data-i18n="app-title" class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">Attendance Lookup</h2>
+
+        <!-- Language Dropdown -->
+        <div class="flex justify-end mb-4">
+            <select id="langSelect" class="w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="en">English</option>
+                <option value="bn">বাংলা (Bangla)</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="ar">العربية (Arabic)</option>
+            </select>
+        </div>
+
+        <!-- Collapsible Instructions Section -->
+        <details class="mb-6 bg-gray-50 rounded-lg p-4 cursor-pointer shadow-sm" open>
+            <summary class="text-lg font-bold text-gray-700 flex justify-between items-center">
+                <span data-i18n="instructions">Instructions</span>
+                <i class="fa-solid fa-chevron-down text-gray-500 text-sm transform transition-transform duration-200"></i>
+            </summary>
+            <div class="mt-4 text-gray-600 space-y-2 text-sm">
+                <p data-i18n="instruction-1">1. Enter your mobile number in the 'Mobile number' field.</p>
+                <p data-i18n="instruction-2">2. Select the month you want to view the attendance for from the 'Select month' dropdown.</p>
+                <p data-i18n="instruction-3">3. Click the 'Get Data' button to fetch the attendance records.</p>
+                <p data-i18n="instruction-4">4. Use the icon on the right to toggle between table and card view.</p>
+            </div>
+        </details>
+
+        <!-- Input Form with Month Dropdown -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="col-span-full md:col-span-2">
+                <label for="mobile" data-i18n="mobile-label" class="block text-sm font-medium text-gray-700 mb-1">Mobile number</label>
+                <!-- Updated input field with numeric keyboard and pattern validation -->
+                <input 
+                    id="mobile" 
+                    type="tel" 
+                    inputmode="numeric"
+                    data-i18n-placeholder="mobile-placeholder" 
+                    placeholder="e.g. 050xxxxxxx" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="col-span-full md:col-span-2">
+                <label for="monthSelect" data-i18n="month-label" class="block text-sm font-medium text-gray-700 mb-1">Select month</label>
+                <select id="monthSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+            </div>
+            <div class="col-span-full flex items-end">
+                <button id="goBtn" onclick="fetchAttendance()" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    <span data-i18n="get-data">Get Data</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status and Loader -->
+        <div id="status-message" class="text-center text-gray-600 font-medium my-4 hidden"></div>
+
+        <div id="resultArea" class="mt-8 fade-in" style="display:none">
+            <div class="summary flex flex-wrap gap-4 mb-6">
+                <!-- Summary items will be dynamically added here -->
+            </div>
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-sm text-gray-500">
+                    <span data-i18n="employee-id-prefix">Employee ID:</span> <span id="workerIdText" class="font-semibold text-gray-700"></span>
+                    <br>
+                    <span data-i18n="employee-name-prefix">Employee Name:</span> <span id="workerNameText" class="font-semibold text-gray-700"></span>
+                </div>
+                <!-- View toggle button. The initial icon is for the table view as grid is default. -->
+                <button id="viewToggleBtn" onclick="toggleView()" class="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">
+                    <i id="tableViewIcon" class="fa-solid fa-table fa-lg block"></i>
+                    <i id="gridViewIcon" class="fa-solid fa-grip fa-lg hidden"></i>
+                </button>
+            </div>
+
+            <!-- The table and card containers are now controlled by JS -->
+            <div id="desktopTable" class="overflow-x-auto hidden">
+                <table id="resultsTable" class="min-w-full divide-y divide-gray-200 shadow-sm rounded-lg">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" data-i18n="col-date" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" data-i18n="col-work-location" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Location</th>
+                            <th scope="col" data-i18n="col-duty-in" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duty In</th>
+                            <th scope="col" data-i18n="col-break-out" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Out</th>
+                            <th scope="col" data-i18n="col-break-in" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break In</th>
+                            <th scope="col" data-i18n="col-duty-out" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duty Out</th>
+                            <th scope="col" data-i18n="col-total-hour" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hour</th>
+                            <th scope="col" data-i18n="col-basic-hour" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Basic Hour</th>
+                            <th scope="col" data-i18n="col-overtime" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overtime</th>
+                            <th scope="col" data-i18n="col-less-basic" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Less Basic</th>
+                            <th scope="col" data-i18n="col-remarks" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Table rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="mobileCards" class="grid grid-cols-1 gap-4 hidden">
+                <!-- Mobile cards will be dynamically added here -->
+            </div>
+
+            <div id="noData" data-i18n="no-data-found" class="mt-4 text-center text-gray-500 hidden">No records found for the selection.</div>
+        </div>
+    </div>
+
+    <script>
+        const getEl = (id) => document.getElementById(id);
+        let currentView = 'grid'; // Default to grid view
+        let attendanceData = null; // Store the fetched data globally
+        
+
+        // Object containing all translated strings
+        const translations = {
+            en: {
+                'app-title': 'Attendance Lookup',
+                'instructions': 'Instructions',
+                'instruction-1': "1. Enter your mobile number in the 'Mobile number' field.",
+                'instruction-2': "2. Select the month you want to view the attendance for from the 'Select month' dropdown.",
+                'instruction-3': "3. Click the 'Get Data' button to fetch the attendance records.",
+                'instruction-4': "4. Use the icon on the right to toggle between table and card view.",
+                'mobile-label': 'Mobile number',
+                'mobile-placeholder': 'e.g. 050xxxxxxx',
+                'month-label': 'Select month',
+                'get-data': 'Get Data',
+                'loading': 'Loading...',
+                'report-success': 'Report generated successfully.',
+                'error-no-mobile': 'Please enter a mobile number.',
+                'error-mobile-format': 'The mobile number must be 10 digits long and start with 0.',
+                'error-server-prefix': 'Server error:',
+                'error-no-response': 'No response from server.',
+                'no-data-found': 'No records found for the selection.',
+                'employee-id-prefix': 'Employee ID:',
+                'employee-name-prefix': 'Employee Name:',
+                'col-date': 'Date',
+                'col-work-location': 'Work Location',
+                'col-duty-in': 'Duty In',
+                'col-break-out': 'Break Out',
+                'col-break-in': 'Break In',
+                'col-duty-out': 'Duty Out',
+                'col-total-hour': 'Total Hour',
+                'col-basic-hour': 'Basic Hour',
+                'col-overtime': 'Overtime',
+                'col-less-basic': 'Less Basic',
+                'col-remarks': 'Remarks',
+                'summary-total-hours': 'Total hours',
+                'summary-total-overtime': 'Total overtime',
+                'summary-absent': 'Absent',
+                'summary-sunday': 'Sunday',
+                'summary-warning': 'Warning',
+                'card-duty-in': 'Duty In:',
+                'card-duty-out': 'Duty Out:',
+                'card-break-out': 'Break Out:',
+                'card-break-in': 'Break In:',
+                'card-total-hour': 'Total Hours:',
+                'card-overtime': 'Overtime:',
+                'card-less-basic': 'Less Basic:',
+            },
+            bn: {
+                'app-title': 'উপস্থিতি অনুসন্ধান করুন',
+                'instructions': 'নির্দেশাবলী',
+                'instruction-1': "১. 'মোবাইল নম্বর' ফিল্ডে আপনার মোবাইল নম্বর লিখুন।",
+                'instruction-2': "২. 'মাস নির্বাচন করুন' ড্রপডাউন থেকে যে মাসের উপস্থিতি দেখতে চান তা নির্বাচন করুন।",
+                'instruction-3': "৩. উপস্থিতি রেকর্ড পেতে 'ডেটা পান' বাটনে ক্লিক করুন।",
+                'instruction-4': "৪. টেবিল এবং কার্ড ভিউয়ের মধ্যে টগল করতে ডানদিকের আইকনটি ব্যবহার করুন।",
+                'mobile-label': 'মোবাইল নম্বর',
+                'mobile-placeholder': 'যেমন: 050xxxxxxx',
+                'month-label': 'মাস নির্বাচন করুন',
+                'get-data': 'এখানে ক্লিক করুন',
+                'loading': 'লোড হচ্ছে...',
+                'report-success': 'প্রতিবেদন সফলভাবে তৈরি হয়েছে।',
+                'error-no-mobile': 'অনুগ্রহ করে আগে মোবাইল নম্বর লিখুন।',
+                'error-mobile-format': 'মোবাইল নম্বরটি ১০ ডিজিটের হতে হবে এবং ০ দিয়ে শুরু হতে হবে।',
+                'error-server-prefix': 'সার্ভার ত্রুটি:',
+                'error-no-response': 'সার্ভার থেকে কোনো প্রতিক্রিয়া নেই।',
+                'no-data-found': 'নির্বাচিত তথ্যের জন্য কোনো রেকর্ড পাওয়া যায়নি।',
+                'employee-id-prefix': 'ব্যাক্তির আইডি:',
+                'employee-name-prefix': 'ব্যাক্তির নাম:',
+                'col-date': 'তারিখ',
+                'col-work-location': 'কাজের স্থান',
+                'col-duty-in': 'কাজ শুরু',
+                'col-break-out': 'বিরতি শুরু',
+                'col-break-in': 'বিরতি শেষ',
+                'col-duty-out': 'কাজ শেষ',
+                'col-total-hour': 'মোট ঘন্টা',
+                'col-basic-hour': 'বেসিক ঘন্টা',
+                'col-overtime': 'ওভারটাইম',
+                'col-less-basic': 'বেসিক পূরন হইনি',
+                'col-remarks': 'মন্তব্য',
+                'summary-total-hours': 'মোট ঘন্টা',
+                'summary-total-overtime': 'মোট ওভারটাইম',
+                'summary-absent': 'অনুপস্থিত',
+                'summary-sunday': 'রবিবার',
+                'summary-warning': 'সতর্কতা',
+                'card-duty-in': 'কাজ শুরু:',
+                'card-duty-out': 'কাজ শেষ:',
+                'card-break-out': 'বিরতি শুরু:',
+                'card-break-in': 'বিরতি শুরু:',
+                'card-total-hour': 'মোট ঘন্টা:',
+                'card-overtime': 'ওভারটাইম:',
+                'card-less-basic': 'বেসিক পূরন হইনি:',
+            },
+            hi: {
+                'app-title': 'उपस्थिति खोज',
+                'instructions': 'निर्देश',
+                'instruction-1': "१. 'मोबाइल नंबर' फ़ील्ड में कर्मचारी का मोबाइल नंबर दर्ज करें।",
+                'instruction-2': "२. 'महीना चुनें' ड्रॉपडाउन से वह महीना चुनें जिसकी उपस्थिति आप देखना चाहते हैं।",
+                'instruction-3': "३. उपस्थिति रिकॉर्ड लाने के लिए 'डेटा प्राप्त करें' बटन पर क्लिक करें।",
+                'instruction-4': "४. तालिका और कार्ड दृश्य के बीच टॉगल करने के लिए दाईं ओर के आइकन का उपयोग करें।",
+                'mobile-label': 'मोबाइल नंबर',
+                'mobile-placeholder': 'उदाहरण: 050xxxxxxx',
+                'month-label': 'महीना चुनें',
+                'get-data': 'डेटा प्राप्त करें',
+                'loading': 'लोड हो रहा है...',
+                'report-success': 'रिपोर्ट सफलतापूर्वक जनरेट हुई।',
+                'error-no-mobile': 'कृपया एक मोबाइल नंबर दर्ज करें।',
+                'error-mobile-format': 'मोबाइल नंबर 10 अंकों का होना चाहिए और 0 से शुरू होना चाहिए।',
+                'error-server-prefix': 'सर्वर त्रुटि:',
+                'error-no-response': 'सर्वर से कोई प्रतिक्रिया नहीं।',
+                'no-data-found': 'चयन के लिए कोई रिकॉर्ड नहीं मिला।',
+                'employee-id-prefix': 'कर्मचारी आईडी:',
+                'employee-name-prefix': 'कर्मचारी का नाम:',
+                'col-date': 'तारीख',
+                'col-work-location': 'कार्य स्थल',
+                'col-duty-in': 'ड्यूटी इन',
+                'col-break-out': 'ब्रेक आउट',
+                'col-break-in': 'ब्रेक इन',
+                'col-duty-out': 'ड्यूटी आउट',
+                'col-total-hour': 'कुल घंटे',
+                'col-basic-hour': 'बेसिक घंटे',
+                'col-overtime': 'ओवरटाइम',
+                'col-less-basic': 'कम बेसिक',
+                'col-remarks': 'टिप्पणियाँ',
+                'summary-total-hours': 'कुल घंटे',
+                'summary-total-overtime': 'कुल ओवरटाइम',
+                'summary-absent': 'अनुपस्थित',
+                'summary-sunday': 'रविवार',
+                'summary-warning': 'चेतावनी',
+                'card-duty-in': 'ड्यूटी इन:',
+                'card-duty-out': 'ड्यूटी आउट:',
+                'card-break-out': 'ब्रेक आउट:',
+                'card-break-in': 'ब्रेक इन:',
+                'card-total-hour': 'कुल घंटे:',
+                'card-overtime': 'ओवरटाइम:',
+                'card-less-basic': 'कम बेसिक:',
+            },
+            ar: {
+                'app-title': 'البحث عن الحضور',
+                'instructions': 'تعليمات',
+                'instruction-1': "١. أدخل رقم جوال الموظف في حقل 'رقم الجوال'.",
+                'instruction-2': "٢. اختر الشهر الذي تريد عرض حضوره من القائمة المنسدلة 'اختر الشهر'.",
+                'instruction-3': "٣. انقر على زر 'احصل على البيانات' لجلب سجلات الحضور.",
+                'instruction-4': "٤. استخدم الأيقونة الموجودة على اليمين للتبديل بين عرض الجدول وعرض البطاقات.",
+                'mobile-label': 'رقم الجوال',
+                'mobile-placeholder': 'مثال: 050xxxxxxx',
+                'month-label': 'اختر الشهر',
+                'get-data': 'احصل على البيانات',
+                'loading': 'جاري التحميل...',
+                'report-success': 'تم إنشاء التقرير بنجاح.',
+                'error-no-mobile': 'الرجاء إدخال رقم جوال.',
+                'error-mobile-format': 'يجب أن يكون رقم الجوال مكونًا من 10 أرقام ويبدأ بـ 0.',
+                'error-server-prefix': 'خطأ في الخادم:',
+                'error-no-response': 'لا يوجد رد من الخادم.',
+                'no-data-found': 'لم يتم العثور على سجلات للتحديد.',
+                'employee-id-prefix': 'رقم الموظف:',
+                'employee-name-prefix': 'اسم الموظف:',
+                'col-date': 'التاريخ',
+                'col-work-location': 'موقع العمل',
+                'col-duty-in': 'الدخول',
+                'col-break-out': 'الاستراحة خارج',
+                'col-break-in': 'الاستراحة داخل',
+                'col-duty-out': 'الخروج',
+                'col-total-hour': 'إجمالي الساعات',
+                'col-basic-hour': 'الساعات الأساسية',
+                'col-overtime': 'الوقت الإضافي',
+                'col-less-basic': 'أقل من الأساسي',
+                'col-remarks': 'الملاحظات',
+                'summary-total-hours': 'إجمالي الساعات',
+                'summary-total-overtime': 'إجمالي الوقت الإضافي',
+                'summary-absent': 'غائب',
+                'summary-sunday': 'الأحد',
+                'summary-warning': 'تحذير',
+                'card-duty-in': 'الدخول:',
+                'card-duty-out': 'الخروج:',
+                'card-break-out': 'الاستراحة خارج:',
+                'card-break-in': 'الاستراحة داخل:',
+                'card-total-hour': 'إجمالي الساعات:',
+                'card-overtime': 'الوقت الإضافي:',
+                'card-less-basic': 'أقل من الأساسي:',
+            },
+        };
+
+        function translatePage(lang) {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang] && translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+            // Handle specific element updates for Arabic
+            if (lang === 'ar') {
+                document.body.style.direction = 'rtl';
+                document.body.style.textAlign = 'right';
+            } else {
+                document.body.style.direction = 'ltr';
+                document.body.style.textAlign = 'left';
+            }
+        }
+
+        function showStatusMessage(messageKey, type) {
+            const statusMessage = getEl('status-message');
+            const lang = getEl('langSelect').value;
+            statusMessage.textContent = translations[lang][messageKey];
+            statusMessage.className = `text-center font-medium my-4 ${
+                type === 'error' ? 'text-red-600' : 'text-green-600'
+            }`;
+            statusMessage.style.display = 'block';
+        }
+        
+        function showLoader(on) {
+            const goBtn = getEl('goBtn');
+            const statusMessage = getEl('status-message');
+
+            goBtn.disabled = on;
+
+            if (on) {
+                const lang = getEl('langSelect').value;
+                const loadingText = translations[lang]['loading'];
+                goBtn.innerHTML = '' +
+                    '<span class="flex items-center justify-center">' +
+                    '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">' +
+                    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+                    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>' +
+                    '</svg>' +
+                    loadingText +
+                    '</span>';
+                statusMessage.style.display = 'none';
+            } else {
+                const lang = getEl('langSelect').value;
+                goBtn.textContent = translations[lang]['get-data'];
+            }
+        }
+
+        function populateMonthDropdown() {
+            const select = getEl('monthSelect');
+            const now = new Date();
+            const lang = getEl('langSelect').value;
+            const monthNames = {
+                en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+                bn: ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"],
+                hi: ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"],
+                ar: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+            };
+
+            // Clear previous options
+            select.innerHTML = '';
+
+            // Loop to add options for the last 3 months
+            for (let i = 0; i < 3; i++) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const formattedMonth = month < 10 ? `0${month}` : month;
+                const option = document.createElement('option');
+                option.value = `${year}-${formattedMonth}`;
+                option.text = `${monthNames[lang][date.getMonth()]} ${year}`;
+                if (i === 0) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+        }
+
+        function fetchAttendance() {
+            const mobile = getEl('mobile').value.trim();
+            const monthValue = getEl('monthSelect').value; // e.g., "2025-08"
+
+            // Added validation for mobile number length and format
+            if (!mobile || mobile.length !== 10 || !mobile.startsWith('0')) {
+                showStatusMessage('error-mobile-format', 'error');
+                return;
+            }
+
+            getEl('resultArea').style.display = 'none';
+            showLoader(true);
+
+            const [year, month] = monthValue.split('-'); // year="2025", month="08"
+            const startDate = `${year}-${month}-01`;
+
+            // Get last day of month
+            const endDate = new Date(year, parseInt(month), 0)
+                .toISOString()
+                .split('T')[0];
+
+            console.log(`Fetching data for mobile: ${mobile}, from: ${startDate}, to: ${endDate}`);
+          
+            const url = new URL("https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec");
+            url.searchParams.append("action", "getAttendanceDataByMobile");
+            url.searchParams.append("mobile", mobile);
+            url.searchParams.append("startISO", startISO);
+            url.searchParams.append("endISO", endISO);
+          
+            return fetch(url)
+            .then(res => {
+              if (!res.ok) throw new Error("Network response was not ok");
+              return res.json();
+            });
+        }
+
+        function handleFailure(err) {
+            showLoader(false);
+            console.error(err);
+            const lang = getEl('langSelect').value;
+            const messageKey = err && err.message ? 'error-server-prefix' : 'error-no-response';
+            const messageText = translations[lang][messageKey] + (err && err.message ? ' ' + err.message : '');
+            showStatusMessage('error-server-prefix', 'error');
+            getEl('status-message').textContent = messageText;
+        }
+
+        function toggleView() {
+            currentView = currentView === 'table' ? 'grid' : 'table';
+            updateViewDisplay();
+        }
+
+        function updateViewDisplay() {
+            const tableContainer = getEl('desktopTable');
+            const cardContainer = getEl('mobileCards');
+            const tableViewIcon = getEl('tableViewIcon');
+            const gridViewIcon = getEl('gridViewIcon');
+
+            if (currentView === 'table') {
+                tableContainer.classList.remove('hidden');
+                cardContainer.classList.add('hidden');
+                tableViewIcon.classList.add('hidden');
+                gridViewIcon.classList.remove('hidden');
+            } else { // currentView === 'grid'
+                tableContainer.classList.add('hidden');
+                cardContainer.classList.remove('hidden');
+                tableViewIcon.classList.remove('hidden');
+                gridViewIcon.classList.add('hidden');
+            }
+        }
+
+        function renderResult(res) {
+            showLoader(false);
+            const lang = getEl('langSelect').value;
+            if (!res) {
+                showStatusMessage('error-no-response', 'error');
+                return;
+            }
+            if (res.error) {
+                showStatusMessage('error-server-prefix', 'error');
+                getEl('status-message').textContent = translations[lang]['error-server-prefix'] + ' ' + res.error;
+                return;
+            }
+
+            attendanceData = res; // Store the data
+            getEl('resultArea').style.display = 'block';
+            getEl('workerIdText').textContent = attendanceData.workerId || '—';
+            getEl('workerNameText').textContent = attendanceData.workerName || '—';
+            showStatusMessage('report-success', 'success');
+
+            // Summary
+            const s = attendanceData.summary || {totalHours:'0.00', totalOvertime:'0.00', absent:0, sunday:0, warning:0};
+            const sb = document.querySelector('#resultArea .summary');
+            sb.innerHTML = '';
+            const summaryHtml = [
+                [translations[lang]['summary-total-hours'], s.totalHours],
+                [translations[lang]['summary-total-overtime'], s.totalOvertime],
+                [translations[lang]['summary-absent'], s.absent, 'bg-red-100'],
+                [translations[lang]['summary-sunday'], s.sunday, 'bg-blue-100'],
+                [translations[lang]['summary-warning'], s.warning, 'bg-yellow-100']
+            ];
+            summaryHtml.forEach(it => {
+                const d = document.createElement('div');
+                d.className = `flex-1 min-w-[120px] p-4 rounded-lg border border-gray-200 ${it[2]} text-center shadow-sm`;
+                d.innerHTML = `<div class="text-sm text-gray-500">${it[0]}</div><div class="font-bold text-lg text-gray-800 mt-2">${it[1]}</div>`;
+                sb.appendChild(d);
+            });
+
+            const table = getEl('resultsTable');
+            const tbody = table.querySelector('tbody');
+            const mobileCards = getEl('mobileCards');
+            
+            tbody.innerHTML = '';
+            mobileCards.innerHTML = '';
+
+            if (attendanceData.rows && attendanceData.rows.length > 0) {
+                attendanceData.rows.forEach(r => {
+                    let rowClass = 'hover:bg-gray-100 transition-colors';
+                    let cardClass = 'bg-white';
+                    const remarks = String(r[10] || '').toLowerCase(); // remarks is at index 10
+                    if (remarks.includes('absent')) {
+                        rowClass = 'bg-red-100 hover:bg-red-200';
+                        cardClass = 'bg-red-100';
+                    } else if (remarks.includes('warning')) {
+                        rowClass = 'bg-yellow-100 hover:bg-yellow-200';
+                        cardClass = 'bg-yellow-100';
+                    } else if (remarks.includes('sunday')) {
+                        rowClass = 'bg-blue-100 hover:bg-blue-200';
+                        cardClass = 'bg-blue-100';
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = rowClass;
+                    r.forEach((cell, index) => {
+                        const td = document.createElement('td');
+                        td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                        td.textContent = (cell === null || cell === undefined) ? '—' : cell;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-lg border border-gray-200 shadow-sm ${cardClass}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-lg font-bold text-gray-800">${r[0] || '—'}</span>
+                            <span class="text-sm text-gray-600">${r[1] || '—'}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                            <div><span class="font-semibold" data-i18n-card="card-duty-in">Duty In:</span> ${r[2] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-duty-out">Duty Out:</span> ${r[5] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-break-out">Break Out:</span> ${r[3] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-break-in">Break In:</span> ${r[4] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-total-hour">Total Hours:</span> ${r[6] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-overtime">Overtime:</span> ${r[8] || '—'}</div>
+                            <div><span class="font-semibold" data-i18n-card="card-less-basic">Less Basic:</span> ${r[9] || '—'}</div>
+                            <div class="col-span-2 text-gray-500 italic">${r[10] || '—'}</div>
+                        </div>
+                    `;
+                    mobileCards.appendChild(card);
+                });
+
+                // Always start in grid view
+                currentView = 'grid';
+                updateViewDisplay();
+                getEl('noData').classList.add('hidden');
+                
+                // Update card labels after creating them
+                document.querySelectorAll('[data-i18n-card]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-card');
+                    if (translations[lang] && translations[lang][key]) {
+                        el.textContent = translations[lang][key];
+                    }
+                });
+
+            } else {
+                getEl('desktopTable').classList.add('hidden');
+                getEl('mobileCards').classList.add('hidden');
+                getEl('noData').classList.remove('hidden');
+            }
+        }
+        
+        // Populate the dropdown on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateMonthDropdown();
+            translatePage('en');
+        });
+
+        // Add event listener for language change
+        getEl('langSelect').addEventListener('change', (e) => {
+            const lang = e.target.value;
+            translatePage(lang);
+            populateMonthDropdown(); // Re-populate with translated month names
+            if (attendanceData) {
+                renderResult(attendanceData); // Re-render results with translated headers
+            }
+        });
+    </script>
+</body>
+</html>
