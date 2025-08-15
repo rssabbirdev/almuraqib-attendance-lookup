@@ -438,13 +438,23 @@
             const url = `https://almuraqib-attendance-lookup.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
           
             fetch(url)
-            .then(res => {
-                let resData = res.json()
-                renderResult(resData)
-            } )
-              .catch(e => {
-                  handleFailure(e)
-              });
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! Status: ${res.status}`);
+                    }
+                    const contentType = res.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return res.json();
+                    } else {
+                        throw new Error("Invalid JSON response");
+                    }
+                })
+                .then(resData => {
+                    renderResult(resData);
+                })
+                .catch(e => {
+                    handleFailure(e);
+                });
         }
 
         function handleFailure(err) {
