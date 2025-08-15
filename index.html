@@ -437,9 +437,14 @@
           
             const url = `https://almuraqib-attendance-lookup.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
           
-            return fetch(url)
-            .then(res => res.json())
-              .catch(console.error);
+            fetch(url)
+            .then(res => {
+                let resData = res.json()
+                renderResult(resData)
+                 )
+              .catch(e => {
+                  handleFailure(e)
+              });
         }
 
         function handleFailure(err) {
