@@ -1,7 +1,8 @@
 export default async function handler(req, res) {
   const { mobile, startISO, endISO } = req.query;
+  const scriptID = 'AKfycbx_XTWnCkdoay0HA_Kr7GTQGVInCLsRR467Z6kvz2R9pCYZyX5x1Z_JJl2tP323joCD'
 
-  const url = `https://script.google.com/macros/s/AKfycbw5Mghwwt3ddL8mXsSEvX9uKbqhCRy-7aUwaRNHbHMj0i_1A9WnM4oA7uwjc7g0x7oj/exec?action=getAttendanceDataByMobile&mobile=${mobile}&startISO=${startISO}&endISO=${endISO}`;
+  const url = `https://script.google.com/macros/s/${scriptID}/exec?action=getAttendanceDataByMobile&mobile=${mobile}&startISO=${startISO}&endISO=${endISO}`;
 
   const response = await fetch(url);
   const data = await response.json();
