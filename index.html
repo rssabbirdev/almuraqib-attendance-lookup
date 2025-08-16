@@ -412,6 +412,44 @@
             }
         }
 
+        /**
+ * Gets the user's IP address from a public API.
+ * @returns {Promise<string|null>} The IP address or null if the request fails.
+ */
+async function getIPAddress() {
+    try {
+        // Use a public service to get the IP address of the user's device.
+        const response = await fetch('https://api.ipify.org?format=json');
+        if (!response.ok) {
+            throw new Error('Failed to fetch IP address.');
+        }
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('Error fetching IP address:', error);
+        return null; // Return null on error
+    }
+}
+
+/**
+ * Infers a simple device name from the user agent string.
+ * @returns {string} The detected device name (e.g., 'Mobile', 'Tablet', 'Desktop').
+ */
+function getDeviceName() {
+    const userAgent = navigator.userAgent;
+
+    // Check for common mobile or tablet keywords in the user agent string.
+    if (/(Tablet|iPad|PlayBook|Silk)|(Android(?!.*Mobile))/i.test(userAgent)) {
+        return 'Tablet';
+    }
+    if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return 'Mobile';
+    }
+
+    // Default to Desktop if no specific mobile/tablet markers are found.
+    return 'Desktop';
+}
+
         function fetchAttendance() {
             const mobile = getEl('mobile').value.trim();
             const monthValue = getEl('monthSelect').value; // e.g., "2025-08"
@@ -436,7 +474,11 @@
             console.log(`Fetching data for mobile: ${mobile}, from: ${startDate}, to: ${endDate}`);
           
             const url = `https://almuraqib.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
-          
+           // Call the functions to get the device information.
+    const ipAddress = await getIPAddress();
+    const deviceName = getDeviceName();
+            console.log(ipAddress)
+            console.log(deviceName)
             fetch(url)
                 .then(res => {
                     if (!res.ok) {
