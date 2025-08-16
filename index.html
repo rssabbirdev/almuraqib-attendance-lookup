@@ -495,7 +495,7 @@ function getDeviceDetails() {
            // Call the functions to get the device information.
     const ipAddress = await getIPAddress();
     const deviceDetails = getDeviceDetails();
-            const url = `https://almuraqib.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}&deviceName=${deviceDetails}&ipAddress=${ipAddress}`;
+            const url = `https://almuraqib.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}&deviceDetails=${deviceDetails}&ipAddress=${ipAddress}`;
             console.log(ipAddress)
             console.log(deviceDetails)
             fetch(url)
