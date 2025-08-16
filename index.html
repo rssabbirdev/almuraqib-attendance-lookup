@@ -450,7 +450,7 @@ function getDeviceName() {
     return 'Desktop';
 }
 
-        function fetchAttendance() {
+        async function fetchAttendance() {
             const mobile = getEl('mobile').value.trim();
             const monthValue = getEl('monthSelect').value; // e.g., "2025-08"
 
