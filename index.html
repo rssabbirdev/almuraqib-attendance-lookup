@@ -435,19 +435,38 @@ async function getIPAddress() {
  * Infers a simple device name from the user agent string.
  * @returns {string} The detected device name (e.g., 'Mobile', 'Tablet', 'Desktop').
  */
-function getDeviceName() {
+function getDeviceDetails() {
     const userAgent = navigator.userAgent;
 
-    // Check for common mobile or tablet keywords in the user agent string.
-    if (/(Tablet|iPad|PlayBook|Silk)|(Android(?!.*Mobile))/i.test(userAgent)) {
-        return 'Tablet';
+    // --- Check for mobile/tablet devices first ---
+    if (/iPhone|iPad|iPod/.test(userAgent)) {
+        return 'Apple iPhone/iPad';
     }
-    if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
-        return 'Mobile';
+    if (/Android/.test(userAgent)) {
+        // More specific Android detection could go here, but it's not always reliable.
+        // For example, looking for specific brand names like Samsung, Google, etc.
+        if (/Samsung/.test(userAgent)) {
+            return 'Samsung Android';
+        }
+        if (/Google/.test(userAgent)) {
+            return 'Google Android';
+        }
+        return 'Generic Android Mobile';
+    }
+    
+    // --- Check for desktop operating systems ---
+    if (/Windows NT/.test(userAgent)) {
+        return 'Windows Desktop';
+    }
+    if (/Macintosh|Mac OS X/.test(userAgent)) {
+        return 'Apple Mac/Desktop';
+    }
+    if (/CrOS/.test(userAgent)) {
+        return 'Chromebook';
     }
 
-    // Default to Desktop if no specific mobile/tablet markers are found.
-    return 'Desktop';
+    // --- Fallback for unknown devices ---
+    return 'Unknown Device';
 }
 
         async function fetchAttendance() {
@@ -476,9 +495,9 @@ function getDeviceName() {
             const url = `https://almuraqib.vercel.app/api/proxy?mobile=${mobile}&startISO=${startDate}&endISO=${endDate}`;
            // Call the functions to get the device information.
     const ipAddress = await getIPAddress();
-    const deviceName = getDeviceName();
+    const getDeviceDetails = getDeviceName();
             console.log(ipAddress)
-            console.log(deviceName)
+            console.log(getDeviceDetails)
             fetch(url)
                 .then(res => {
                     if (!res.ok) {
