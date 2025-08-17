@@ -4,12 +4,24 @@ import { useState, useEffect } from 'react'
 import AttendanceForm from '@/components/AttendanceForm'
 import AttendanceResults from '@/components/AttendanceResults'
 import { AttendanceData } from '@/types/attendance'
+import { getSavedLanguage, saveLanguage, saveMobile } from '@/lib/localStorage'
 
 export default function Home() {
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [language, setLanguage] = useState<'en' | 'bn' | 'hi' | 'ar'>('en')
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // Load saved preferences from localStorage on component mount
+  useEffect(() => {
+    // Load saved language preference
+    const savedLanguage = getSavedLanguage()
+    if (savedLanguage && ['en', 'bn', 'hi', 'ar'].includes(savedLanguage)) {
+      setLanguage(savedLanguage as 'en' | 'bn' | 'hi' | 'ar')
+    }
+    setIsInitialized(true)
+  }, [])
 
   // Handle RTL for Arabic language
   useEffect(() => {
@@ -21,6 +33,13 @@ export default function Home() {
       document.body.style.textAlign = 'left'
     }
   }, [language])
+
+  // Save language preference to localStorage whenever it changes (but not during initial load)
+  useEffect(() => {
+    if (isInitialized) {
+      saveLanguage(language)
+    }
+  }, [language, isInitialized])
 
   const handleFetchAttendance = async (mobile: string, monthValue: string) => {
     setLoading(true)
@@ -47,6 +66,9 @@ export default function Home() {
       if (data.error) {
         throw new Error(data.error)
       }
+      
+      // Save mobile number to localStorage on successful data fetch
+      saveMobile(mobile)
       
       setAttendanceData(data)
     } catch (err) {

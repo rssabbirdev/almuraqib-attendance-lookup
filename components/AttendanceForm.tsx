@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { translations } from '@/lib/translations'
 import { Language } from '@/types/attendance'
+import { getSavedMobile, clearAllSavedData } from '@/lib/localStorage'
 
 interface AttendanceFormProps {
   onFetchAttendance: (mobile: string, monthValue: string) => void
@@ -15,6 +16,14 @@ interface AttendanceFormProps {
 export default function AttendanceForm({ onFetchAttendance, loading, error, language, onLanguageChange }: AttendanceFormProps) {
   const [mobile, setMobile] = useState('')
   const [monthValue, setMonthValue] = useState('')
+
+  // Load saved mobile number from localStorage on component mount
+  useEffect(() => {
+    const savedMobile = getSavedMobile()
+    if (savedMobile) {
+      setMobile(savedMobile)
+    }
+  }, [])
 
   useEffect(() => {
     populateMonthDropdown()
@@ -55,6 +64,13 @@ export default function AttendanceForm({ onFetchAttendance, loading, error, lang
     }
     
     onFetchAttendance(mobile, monthValue)
+  }
+
+  const handleClearSavedData = () => {
+    clearAllSavedData()
+    setMobile('')
+    // Reset to default language (English)
+    onLanguageChange('en')
   }
 
   const translatePage = (lang: Language) => {
@@ -183,6 +199,18 @@ export default function AttendanceForm({ onFetchAttendance, loading, error, lang
           {error}
         </div>
       )}
+
+      {/* Clear Saved Data Button */}
+      {/* <div className="text-center mt-4">
+        <button
+          type="button"
+          onClick={handleClearSavedData}
+          className="text-sm text-gray-500 hover:text-gray-700 underline"
+          title="Clear saved mobile number and language preference"
+        >
+          {t('clear-saved-data')}
+        </button>
+      </div> */}
     </>
   )
 }

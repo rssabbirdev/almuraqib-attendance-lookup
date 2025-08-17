@@ -78,9 +78,54 @@ export default function AttendanceResults({ data, language }: AttendanceResultsP
     }
   }, [data.rows, language])
 
+  // Calculate working days (days with both duty in and duty out)
+  const calculateWorkingDays = () => {
+    if (!data.rows || data.rows.length === 0) return 0
+    
+    let workingDays = 0
+    for (const row of data.rows) {
+      // Check if both duty in (index 2) and duty out (index 5) have values
+      const dutyIn = row[2]
+      const dutyOut = row[5]
+      
+      if (dutyIn && dutyOut && dutyIn !== '' && dutyOut !== '') {
+        workingDays++
+      }
+    }
+    return workingDays
+  }
+
+  // Calculate total days in the month
+  const calculateTotalDays = () => {
+    if (!data.rows || data.rows.length === 0) return 0
+    return data.rows.length
+  }
+
+  // Calculate final hours after warning deductions
+  const calculateFinalHours = () => {
+    const totalHours = parseFloat(data.summary.totalHours) || 0
+    const warningDeduction = data.summary.warning || 0
+    return Math.max(0, totalHours - warningDeduction).toFixed(2)
+  }
+
+  const workingDays = calculateWorkingDays()
+  const totalDays = calculateTotalDays()
+  const workingDaysPercentage = totalDays > 0 ? Math.round((workingDays / totalDays) * 100) : 0
+  const finalHours = calculateFinalHours()
+
+  // Helper function to replace placeholders in translation strings
+  const formatSummaryText = (key: string, replacements: Record<string, string | number>) => {
+    let text = t(key)
+    Object.entries(replacements).forEach(([placeholder, value]) => {
+      text = text.replace(`{${placeholder}}`, String(value))
+    })
+    return text
+  }
+
   const summaryItems: SummaryItem[] = [
     { label: t('summary-total-hours'), value: data.summary.totalHours },
     { label: t('summary-total-overtime'), value: data.summary.totalOvertime },
+    { label: t('summary-working-days'), value: `${workingDays}/${totalDays} (${workingDaysPercentage}%)`, bgColor: 'bg-green-100' },
     { label: t('summary-absent'), value: data.summary.absent, bgColor: 'bg-red-100' },
     { label: t('summary-sunday'), value: data.summary.sunday, bgColor: 'bg-blue-100' },
     { label: t('summary-warning'), value: data.summary.warning, bgColor: 'bg-yellow-100' }
@@ -264,6 +309,40 @@ export default function AttendanceResults({ data, language }: AttendanceResultsP
 						</div>
 					</div>
 				))}
+			</div>
+
+			{/* Detailed Summary */}
+			<div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6'>
+				<div className='space-y-3 text-gray-700'>
+					<div className='text-lg font-semibold text-gray-800'>
+						{formatSummaryText('summary-overview', { name: data.workerName || 'Employee' })}
+					</div>
+					<div>
+						{formatSummaryText('summary-total-worked', { 
+							hours: data.summary.totalHours, 
+							overtime: data.summary.totalOvertime 
+						})}
+					</div>
+					<div>
+						{formatSummaryText('summary-attendance-rate', { 
+							working: workingDays, 
+							total: totalDays, 
+							percentage: workingDaysPercentage,
+							absent: data.summary.absent
+						})}
+					</div>
+					<div>
+						{formatSummaryText('summary-warnings', { 
+							warnings: data.summary.warning,
+							plural: data.summary.warning === 1 ? '' : 's'
+						})}
+					</div>
+					<div>
+						{formatSummaryText('summary-deduction', { 
+							final: finalHours 
+						})}
+					</div>
+				</div>
 			</div>
 
 			{/* Employee Info and View Toggle */}
