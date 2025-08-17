@@ -91,6 +91,8 @@ export const translations: Translations = {
 		'modal-duty-out': 'Duty Out',
 		'modal-break-out': 'Break Out',
 		'modal-break-in': 'Break In',
+		'modal-overtime': 'Overtime',
+		'modal-less-basic': 'Less Basic',
 	},
 	bn: {
 		'app-title': 'উপস্থিতি অনুসন্ধান করুন',
@@ -180,6 +182,8 @@ export const translations: Translations = {
 		'modal-duty-out': 'কাজ শেষ',
 		'modal-break-out': 'বিরতি শুরু',
 		'modal-break-in': 'বিরতি শেষ',
+		'modal-overtime': 'ওভারটাইম',
+		'modal-less-basic': 'বেসিক পূরন হইনি',
 	},
 	hi: {
 		'app-title': 'उपस्थिति खोज',
@@ -271,6 +275,8 @@ export const translations: Translations = {
 		'modal-duty-out': 'ड्यूटी आउट',
 		'modal-break-out': 'ब्रेक आउट',
 		'modal-break-in': 'ब्रेक इन',
+		'modal-overtime': 'ओवरटाइम',
+		'modal-less-basic': 'कम बेसिक',
 	},
 	ar: {
 		'app-title': 'البحث عن الحضور',
@@ -361,5 +367,7 @@ export const translations: Translations = {
 		'modal-duty-out': 'الخروج',
 		'modal-break-out': 'الاستراحة خارج',
 		'modal-break-in': 'الاستراحة داخل',
+		'modal-overtime': 'الوقت الإضافي',
+		'modal-less-basic': 'أقل من الأساسي',
 	},
 };
