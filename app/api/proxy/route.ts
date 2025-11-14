@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const scriptID = 'AKfycbx_XTWnCkdoay0HA_Kr7GTQGVInCLsRR467Z6kvz2R9pCYZyX5x1Z_JJl2tP323joCD'
+  const scriptID = 'AKfycbw2QG2TE8-E1l8b9uIbmr_3Kv5FvPdehqmnh5josHRxThce2y3aRAQSeRVAhf86eSEQ'
   
   const url = `https://script.google.com/macros/s/${scriptID}/exec?action=getAttendanceDataByMobile&mobile=${mobile}&startISO=${startISO}&endISO=${endISO}&deviceDetails=${deviceDetails}&ipAddress=${ipAddress}`
 
